@@ -1,5 +1,6 @@
 package com.example.userauthservice.service;
 
+import com.example.userauthservice.exceptions.InvalidTokenException;
 import com.example.userauthservice.model.Token;
 import com.example.userauthservice.repository.TokenRepository;
 import org.antlr.v4.runtime.misc.Pair;
@@ -78,5 +79,19 @@ public class DbAuthService implements AuthService {
         token.setExpirationDate(dateAfter30Days);
         return tokenRepository.save(token);
 
+    }
+
+    @Override
+    public User validateToken(String token) throws InvalidTokenException {
+        Optional<Token> tokenOptional = tokenRepository.findByTokenValAndExpirationDateAfter(token , new Date());
+        if(tokenOptional.isEmpty()){
+            throw new InvalidTokenException("Invalid or expired token: " + token);
+        }
+        Token validToken = tokenOptional.get();
+        User user = validToken.getUser();
+        if (user == null) {
+            throw new InvalidTokenException("No user associated with the token: " + token);
+        }
+        return user;
     }
 }
