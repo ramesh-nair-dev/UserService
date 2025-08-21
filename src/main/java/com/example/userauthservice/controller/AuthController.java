@@ -7,9 +7,9 @@ import com.example.userauthservice.dto.SignUpResponseDTO;
 import com.example.userauthservice.exceptions.PasswordMisMatchException;
 import com.example.userauthservice.exceptions.UserAlreadyExistsException;
 import com.example.userauthservice.exceptions.UserNotExistsException;
+import com.example.userauthservice.model.Token;
 import com.example.userauthservice.model.User;
 import com.example.userauthservice.service.AuthService;
-import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,8 +34,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequest) throws UserNotExistsException, PasswordMisMatchException {
-        Pair<User , String> userAndToken = authService.login(LoginRequestDTO.toUser(loginRequest));
-        return ResponseEntity.status(HttpStatus.OK).body(LoginResponseDTO.fromUser(userAndToken.a));
+        Token userToken = authService.login(LoginRequestDTO.toUser(loginRequest));
+        return ResponseEntity.status(HttpStatus.OK).body(LoginResponseDTO.fromUser(userToken.getUser(),userToken));
     }
 
 
