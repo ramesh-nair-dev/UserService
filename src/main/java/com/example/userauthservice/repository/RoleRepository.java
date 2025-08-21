@@ -1,4 +1,8 @@
 package com.example.userauthservice.repository;
 
-public interface RoleRepository {
+import com.example.userauthservice.model.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RoleRepository extends JpaRepository<Role, Long> {
+
 }
