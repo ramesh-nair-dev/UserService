@@ -3,7 +3,10 @@ package com.example.userauthservice.service;
 import com.example.userauthservice.exceptions.InvalidTokenException;
 import com.example.userauthservice.model.Token;
 import com.example.userauthservice.repository.TokenRepository;
-import org.antlr.v4.runtime.misc.Pair;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import com.example.userauthservice.exceptions.PasswordMisMatchException;
 import com.example.userauthservice.exceptions.UserAlreadyExistsException;
 import com.example.userauthservice.exceptions.UserNotExistsException;
@@ -11,10 +14,10 @@ import com.example.userauthservice.model.Role;
 import com.example.userauthservice.model.User;
 import com.example.userauthservice.repository.RoleRepository;
 import com.example.userauthservice.repository.UserRepository;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
 import java.util.*;
 
 @Service
@@ -23,18 +26,20 @@ public class DbAuthService implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
-    private final TokenRepository tokenRepository;
+    SecretKey secretKey;
+    private static final long EXPIRATION_TIME = 10*60*60*1000; // 10 hours in milliseconds
+
 
     public  DbAuthService(
             UserRepository userRepository ,
             RoleRepository roleRepository ,
             BCryptPasswordEncoder bCryptPasswordEncoder,
-            TokenRepository tokenRepository
+            SecretKey secretKey
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.tokenRepository = tokenRepository;
+        this.secretKey= secretKey;
 
     }
 
@@ -58,6 +63,7 @@ public class DbAuthService implements AuthService {
 
     @Override
     public Token login(User user) throws UserNotExistsException, PasswordMisMatchException {
+
         Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
         if(existingUser.isEmpty()){
             throw new UserNotExistsException("User with email " + user.getEmail() + " does not exist");
@@ -69,29 +75,79 @@ public class DbAuthService implements AuthService {
             throw new PasswordMisMatchException("Password does not match for user with email " + user.getEmail());
         }
 
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
+
         // Generate a token for the user
+        Map<String , Object> claims = new HashMap<>();
+        claims.put("userId" , existingUser.get().getId());
+        claims.put("email" , existingUser.get().getEmail());
+
+        String jsonToken = Jwts.builder()
+                .setClaims(claims)
+                .setSubject(existingUser.get().getEmail())
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+
+
         Token token = new Token();
         token.setUser(existingUser.get());
-        token.setTokenVal(RandomStringUtils.randomAlphanumeric(128));
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_MONTH, 30);
-        Date dateAfter30Days = calendar.getTime();
-        token.setExpirationDate(dateAfter30Days);
-        return tokenRepository.save(token);
+        token.setTokenVal(jsonToken);
+        token.setExpirationDate(expiryDate);
+        return token;
 
     }
 
     @Override
     public User validateToken(String token) throws InvalidTokenException {
-        Optional<Token> tokenOptional = tokenRepository.findByTokenValAndExpirationDateAfter(token , new Date());
-        if(tokenOptional.isEmpty()){
-            throw new InvalidTokenException("Invalid or expired token: " + token);
+        if(token == null || token.isEmpty()){
+            throw new InvalidTokenException("Token is null or empty");
         }
-        Token validToken = tokenOptional.get();
-        User user = validToken.getUser();
-        if (user == null) {
-            throw new InvalidTokenException("No user associated with the token: " + token);
+        Claims claims;
+        try{
+            claims = Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
         }
-        return user;
+        catch (io.jsonwebtoken.ExpiredJwtException e){
+            System.out.println("Token is expired: " + e.getMessage());
+            return null;
+        }
+        catch(io.jsonwebtoken.JwtException e){
+            System.out.println("Token is invalid: " + e.getMessage());
+            return null;
+        }
+
+        String email = claims.get("email", String.class);
+        if(email == null || email.isEmpty()){
+            System.out.println("Email claim is missing in the token");
+            return null;
+        }
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if(userOptional.isEmpty()){
+            System.out.println("User with email " + email + " does not exist");
+            return null;
+        }
+        return userOptional.get();
     }
+
+
+//    private User validateNonJwtToken(String token) throws InvalidTokenException {
+//
+//        Optional<Token> tokenOptional = tokenRepository.findByTokenValAndExpirationDateAfter(token , new Date());
+//        if(tokenOptional.isEmpty()){
+//            throw new InvalidTokenException("Invalid or expired token: " + token);
+//        }
+//        Token validToken = tokenOptional.get();
+//        User user = validToken.getUser();
+//        if (user == null) {
+//            throw new InvalidTokenException("No user associated with the token: " + token);
+//        }
+//        return user;
+//    }
 }

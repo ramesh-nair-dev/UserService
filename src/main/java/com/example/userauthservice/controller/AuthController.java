@@ -35,7 +35,7 @@ public class AuthController {
     }
 
     @GetMapping("/validate")
-    public ResponseEntity<UserDTO> validateToken(@RequestHeader("token") String token) throws InvalidTokenException {
+    public ResponseEntity<UserDTO> validateToken(@RequestHeader("token") String token) throws InvalidTokenException, UserNotExistsException {
         // Token validation logic can be implemented here
         // For now, we will just return a success message
         System.out.println("Validating token: " + token);

@@ -10,5 +10,5 @@ import com.example.userauthservice.model.User;
 public interface AuthService {
     User signUp(User user) throws UserAlreadyExistsException;
     Token login(User user) throws UserNotExistsException, PasswordMisMatchException;
-    User validateToken(String token) throws InvalidTokenException;
+    User validateToken(String token) throws InvalidTokenException, UserNotExistsException;
 }
