@@ -49,14 +49,18 @@ public class DbAuthService implements AuthService {
         if(existingUser.isPresent()) {
             throw new UserAlreadyExistsException("User with email " + user.getEmail() + " already exists");
         }
-        if(user.getRoleList() == null){
-            List<Role> roleList = new ArrayList<>();
-            Role role = new Role();
-            role.setName("ROLE_USER");
-            roleList.add(role);
-            user.setRoleList(roleList);
-            roleRepository.save(role);
+
+        Role role = roleRepository.findByName("ROLE_USER")
+                .orElseGet(() -> {
+                    Role newRole = new Role();
+                    newRole.setName("ROLE_USER");
+                    return roleRepository.save(newRole);
+                });
+
+        if(user.getRoleList() == null || user.getRoleList().isEmpty()){
+            user.setRoleList(List.of(role));
         }
+
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
