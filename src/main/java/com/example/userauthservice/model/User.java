@@ -2,6 +2,7 @@ package com.example.userauthservice.model;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToMany;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +17,7 @@ public class User extends BaseClass {
     private String password;
     private String email;
     private String phoneNumber;
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     private List<Role> roleList;
 
 }
