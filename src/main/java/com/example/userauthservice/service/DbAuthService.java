@@ -1,8 +1,11 @@
 package com.example.userauthservice.service;
 
+import com.example.userauthservice.dto.SendEmailDTO;
 import com.example.userauthservice.exceptions.InvalidTokenException;
 import com.example.userauthservice.model.Token;
 import com.example.userauthservice.repository.TokenRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -14,6 +17,8 @@ import com.example.userauthservice.model.Role;
 import com.example.userauthservice.model.User;
 import com.example.userauthservice.repository.RoleRepository;
 import com.example.userauthservice.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +33,12 @@ public class DbAuthService implements AuthService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     SecretKey secretKey;
     private static final long EXPIRATION_TIME = 10*60*60*1000; // 10 hours in milliseconds
+
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
 
     public  DbAuthService(
@@ -44,7 +55,7 @@ public class DbAuthService implements AuthService {
     }
 
     @Override
-    public User signUp(User user) throws UserAlreadyExistsException {
+    public User signUp(User user) throws UserAlreadyExistsException, JsonProcessingException {
         Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
         if(existingUser.isPresent()) {
             throw new UserAlreadyExistsException("User with email " + user.getEmail() + " already exists");
@@ -62,6 +73,14 @@ public class DbAuthService implements AuthService {
         }
 
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+        // Send a message to Kafka topic to send a welcome email
+        SendEmailDTO sendEmailDTO = SendEmailDTO.from(user.getEmail(),user.getUsername());
+        kafkaTemplate.send(
+                "sendEmailEvent",
+                objectMapper.writeValueAsString(sendEmailDTO)
+
+        );
+
         return userRepository.save(user);
     }
 
