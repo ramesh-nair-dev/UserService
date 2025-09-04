@@ -1,15 +1,13 @@
 package com.example.userauthservice.service;
 
-import com.example.userauthservice.dto.SendEmailDTO;
+import com.example.userauthservice.dto.SendEmailEventDTO;
 import com.example.userauthservice.exceptions.InvalidTokenException;
 import com.example.userauthservice.model.Token;
-import com.example.userauthservice.repository.TokenRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import com.example.userauthservice.exceptions.PasswordMisMatchException;
 import com.example.userauthservice.exceptions.UserAlreadyExistsException;
 import com.example.userauthservice.exceptions.UserNotExistsException;
@@ -74,7 +72,7 @@ public class DbAuthService implements AuthService {
 
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         // Send a message to Kafka topic to send a welcome email
-        SendEmailDTO sendEmailDTO = SendEmailDTO.from(user.getEmail(),user.getUsername());
+        SendEmailEventDTO sendEmailDTO = SendEmailEventDTO.from(user.getEmail(),user.getUsername());
         kafkaTemplate.send(
                 "sendEmailEvent",
                 objectMapper.writeValueAsString(sendEmailDTO)

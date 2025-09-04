@@ -5,13 +5,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SendEmailDTO {
+public class SendEmailEventDTO {
     private String to;
     private String subject;
     private String body;
 
-    public static SendEmailDTO from(String email ,String name) {
-        SendEmailDTO dto = new SendEmailDTO();
+    public static SendEmailEventDTO from(String email , String name) {
+        SendEmailEventDTO dto = new SendEmailEventDTO();
         dto.setTo(email);
         dto.setSubject("Welcome " +name+" to User Auth Service");
         dto.setBody("Thank you for registering with User Auth Service.");
