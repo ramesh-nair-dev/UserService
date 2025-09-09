@@ -118,6 +118,3 @@ Service runs at: **`http://localhost:8080`**
 🌐 GitHub: https://github.com/ramesh-nair-dev
 
 ---
-
-
-Would you like me to now **standardize the style across all your project READMEs** (TicTacToe, ParkingLot, BookMyShow, SplitWise, ProductService, UserService), so your portfolio looks **uniform, polished, and top-1% professional** when recruiters scan multiple repos?
